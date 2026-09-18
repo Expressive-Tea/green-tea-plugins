@@ -1,0 +1,88 @@
+name: CI
+
+# Gitea only, for now. Every package builds against @green-tea/core@26.9.0-beta.2, which exists on
+# Verdaccio alone, and a GitHub runner cannot reach Verdaccio. Plan B3 moves the packages to a core on
+# npm, removes these guards and adds the GitHub mirror; until then GitHub has no copy to run against.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  # Its own job so a missing sign-off reports on its own and costs nothing on push. Checks that the
+  # trailer is present, not that it matches the author.
+  dco:
+    if: github.event_name == 'pull_request' && github.server_url != 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Every commit needs a Signed-off-by
+        env:
+          RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
+        run: |
+          missing=0
+          for sha in $(git rev-list --no-merges "$RANGE"); do
+            if ! git show -s --format='%(trailers:key=Signed-off-by,valueonly)' "$sha" | grep -q '[^[:space:]]'; then
+              echo "::error::no Signed-off-by: $(git show -s --format='%h %s' "$sha")"
+              missing=1
+            fi
+          done
+          if [ "$missing" = 1 ]; then
+            echo "Fix the whole branch with: git rebase --signoff ${{ github.event.pull_request.base.sha }}"
+            exit 1
+          fi
+          echo "All commits signed off."
+
+  # Node 22 is the lowest `engines.node` any package declares (spec 2.5: build on the floor).
+  build:
+    if: github.server_url != 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate to Verdaccio
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
+        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run complexity:check
+      - run: npm run typecheck
+      - run: npm test
+
+  # A fixed matrix, not `fromJSON`: Gitea Actions support for a dynamic matrix was not verified. Each
+  # entry runs only the packages whose engines name that runtime (scripts/run-runtime.mjs).
+  runtimes:
+    if: github.server_url != 'https://github.com'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [deno, bun, edge]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate to Verdaccio
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
+        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
+      - run: npm ci
+      - if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+      - run: npm run test:${{ matrix.runtime }}
+      # Kept because it passed locally on Deno 2.9.6: `nodeModulesDir: manual` resolves core from the
+      # tree `npm ci` installed, so JSR's checker never needs the version to exist on npm.
+      - if: matrix.runtime == 'deno'
+        run: deno publish --dry-run
