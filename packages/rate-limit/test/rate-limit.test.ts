@@ -1,10 +1,11 @@
 import { strict as assert } from 'node:assert';
+import { spawn } from 'node:child_process';
 import { test } from 'node:test';
 
 import { createApp } from '@green-tea/core';
 import type { App } from '@green-tea/core';
 
-import { probeModule } from '../../../test/helpers.ts';
+import { probeModule, runtimeCommand } from '../../../test/helpers.ts';
 import { TooManyRequests } from '../src/errors.ts';
 import { rateLimit } from '../src/index.ts';
 import type { RateLimiter } from '../src/index.ts';
@@ -206,4 +207,36 @@ test('two instances with different provides both answer, without colliding', asy
 test('the plugin is named after what it provides', () => {
   assert.equal(rateLimit({ rules: RULES }).name, 'rateLimit');
   assert.equal(rateLimit({ rules: RULES, provides: 'adminLimit' }).name, 'adminLimit');
+});
+
+/** Runs the probe and reports how it ended. `timeoutMs` elapsing means it never exited. */
+function runProbe(timeoutMs: number): Promise<{ exited: boolean; output: string }> {
+  const { command, args } = runtimeCommand('packages/rate-limit/test/_exit-probe.ts');
+
+  return new Promise((resolve) => {
+    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'inherit'] });
+    let output = '';
+
+    child.stdout.on('data', (chunk: Buffer) => (output += chunk.toString()));
+
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      resolve({ exited: false, output });
+    }, timeoutMs);
+
+    child.on('exit', () => {
+      clearTimeout(timer);
+      resolve({ exited: true, output });
+    });
+  });
+}
+
+// Convention rule 7, and the only test in the repository that measures it rather than asserting it.
+// A leaked setInterval keeps Node, Deno and Bun alive indefinitely; a cleared one lets each exit in
+// well under a second. The process is the probe, which is what makes this portable.
+test('the app exits on its own after close(), because onShutdown cleared the sweep', async () => {
+  const { exited, output } = await runProbe(2_000);
+
+  assert.ok(output.includes('closed'), `the probe never reached close(): ${output}`);
+  assert.ok(exited, 'the process was still alive 2s after close() — a timer outlived onShutdown');
 });
