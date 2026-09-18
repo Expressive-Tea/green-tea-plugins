@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.DS_Store
+
+# Per-developer agent state, ignored here for the same reason as in core: local settings and tool
+# locks, one directory per assistant, none of it shared configuration.
+.claude/
+.serena/
