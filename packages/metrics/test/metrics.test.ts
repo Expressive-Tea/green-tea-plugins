@@ -1,7 +1,10 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
+import { createApp, Get, Module, Route, Transformer, needs } from '@green-tea/core';
+
 import { Metrics } from '../src/collector.ts';
+import { metrics, prometheus } from '../src/index.ts';
 
 const end = (route: string, method: string, status: number, durationMs = 5) =>
   ({ name: route, route, method, status, durationMs }) as never;
@@ -79,4 +82,49 @@ test('an event with no route is attributed rather than dropped or left blank', (
   collector.observeEnd({ name: 'GET /x', method: 'GET', status: 200, durationMs: 1 } as never);
 
   assert.equal(collector.snapshot().requests[0].route, '<unknown>');
+});
+
+test('the transformer serves the text format with the content type Prometheus expects', () => {
+  const rendered = prometheus('green_tea_requests_total{route="/x",method="GET",status="200"} 1\n');
+
+  assert.equal(rendered.status, 200);
+  assert.match(rendered.headers!['content-type'], /text\/plain/);
+  assert.match(rendered.body, /green_tea_requests_total/);
+});
+
+test('an application serves its own /metrics route from the published collector', async () => {
+  @Route('/')
+  class Ops {
+    @Get('/metrics')
+    @Transformer(prometheus)
+    scrape(@needs('metrics') collector: Metrics) {
+      return collector.render();
+    }
+
+    @Get('/hello')
+    hello() {
+      return { ok: true };
+    }
+  }
+
+  @Module({ mountpoint: '/', controllers: [Ops] })
+  class OpsModule {}
+
+  const app = createApp({ modules: [OpsModule], plugins: [metrics()] });
+
+  try {
+    await app.fetch(new Request('http://plugin.test/hello'));
+    const scrape = await app.fetch(new Request('http://plugin.test/metrics'));
+    const body = await scrape.text();
+
+    assert.equal(scrape.status, 200);
+    assert.match(body, /green_tea_requests_total\{route="\/hello",method="GET",status="200"\} 1/);
+  } finally {
+    await app.close();
+  }
+});
+
+test('the plugin is named after what it provides', () => {
+  assert.equal(metrics().name, 'metrics');
+  assert.equal(metrics({ provides: 'opsMetrics' }).name, 'opsMetrics');
 });
