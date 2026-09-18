@@ -1,0 +1,33 @@
+{
+  "name": "green-tea-plugins",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "lint": "eslint --no-error-on-unmatched-pattern packages test",
+    "format": "prettier --write \"packages/*/{src,test}/**/*.ts\" \"test/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/{src,test}/**/*.ts\" \"test/**/*.ts\"",
+    "complexity:check": "node scripts/check-complexity.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import tsx --test test/*.test.ts packages/*/test/*.test.ts",
+    "test:deno": "node scripts/run-runtime.mjs deno",
+    "test:bun": "node scripts/run-runtime.mjs bun",
+    "test:edge": "node scripts/run-runtime.mjs workerd",
+    "prepare": "git config core.hooksPath .githooks || true"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/node": "^22.0.0",
+    "cognitive-complexity-ts": "^0.8.2",
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.5",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.70.0"
+  }
+}
