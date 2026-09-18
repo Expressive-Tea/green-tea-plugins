@@ -1,0 +1,13 @@
+{
+  "name": "@green-tea/jwt",
+  "version": "26.9.0-beta.0",
+  "license": "MIT",
+  "exports": "./src/index.ts",
+  "imports": {
+    "@green-tea/core": "npm:@green-tea/core@26.9.0-beta.2",
+    "jose": "npm:jose@^6.2.12"
+  },
+  "publish": {
+    "include": ["src", "README.md", "CHANGELOG.md", "deno.json"]
+  }
+}

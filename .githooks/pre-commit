@@ -1,0 +1,14 @@
+#!/bin/sh
+# Pre-commit gate. Auto-fixes formatting and lint on staged TypeScript, re-stages it, then enforces lint
+# and the complexity gate. Enabled by the `prepare` script (`git config core.hooksPath .githooks`).
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- 'packages/*.ts' 'test/*.ts')
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs npx prettier --write
+  echo "$staged" | xargs npx eslint --fix
+  echo "$staged" | xargs git add
+fi
+
+npm run lint
+npm run complexity:check

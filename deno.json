@@ -1,0 +1,9 @@
+{
+  "workspace": ["./packages/jwt"],
+  "nodeModulesDir": "manual",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "lint": { "exclude": ["node_modules"] }
+}
