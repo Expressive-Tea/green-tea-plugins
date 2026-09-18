@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
+import { TooManyRequests } from '../src/errors.ts';
 import { MemoryStore } from '../src/memory-store.ts';
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -65,4 +66,19 @@ test('close is idempotent, because close() is called more than once in real apps
   store.close();
 
   assert.doesNotThrow(() => store.close());
+});
+
+// Convention rule 8, checked where it bites. The class never extends core's HttpError — it carries a
+// registry-wide symbol, which is what lets a plugin throw a 429 that core renders without importing
+// core, and what keeps working when two copies of core are in one tree (`instanceof` does not).
+test('carries the brand core recognises, and the fields core reads off it', () => {
+  const error = new TooManyRequests('slow down', 30);
+
+  assert.equal((error as unknown as Record<symbol, unknown>)[Symbol.for('green-tea.http-error')], true);
+  assert.equal(error.status, 429);
+  assert.equal(error.message, 'slow down');
+  assert.equal(error.headers['retry-after'], '30');
+  assert.deepEqual(error.body, { message: 'slow down', status: 429 });
+  // Still an Error: a throw that is not one loses the stack, and core rethrows before rendering.
+  assert.ok(error instanceof Error);
 });
