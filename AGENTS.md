@@ -18,6 +18,7 @@ npm run typecheck
 npm test                   # Node: every package's contract tests + the workspace checks
 npm run test:deno          # packages whose engines declare deno
 npm run test:bun           # packages whose engines declare bun
+npm run build              # tsup, every package: dist/ as CJS + ESM + declarations, for npm only
 ```
 
 Run all of them before proposing anything as finished. CI runs each one and each gates a merge.
@@ -48,6 +49,12 @@ a pull request. Until core is consumed from npm (Plan B3), CI runs on Gitea only
    beside every one that is not supported. Nobody should have to open an issue to learn where a
    plugin runs.
 10. A breaking change goes under `### Breaking`, first in the package's CHANGELOG.
+11. **The two registries are served different things.** `deno.json` exports `./src/index.ts`, because
+    JSR transpiles TypeScript itself and hands Node a typed ESM package. `package.json` exports
+    `./dist/`, built by tsup as CJS *and* ESM, because npm transpiles nothing and Node refuses to
+    strip types under `node_modules` — `--experimental-strip-types` does not lift that, so a package
+    exporting `.ts` installs cleanly and then throws on the first import, everywhere but Bun.
+    `test/workspace.test.ts` pins both halves.
 
 ## Conventions
 
