@@ -1,5 +1,5 @@
 {
-  "workspace": ["./packages/jwt"],
+  "workspace": ["./packages/jwt", "./packages/metrics", "./packages/rate-limit"],
   "nodeModulesDir": "manual",
   "compilerOptions": {
     "experimentalDecorators": true,
