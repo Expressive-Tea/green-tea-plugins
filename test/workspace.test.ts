@@ -19,6 +19,12 @@ interface PackageJson {
   devDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   repository?: { type?: string; url?: string; directory?: string };
+  main?: string;
+  module?: string;
+  types?: string;
+  files?: string[];
+  exports?: unknown;
+  scripts?: Record<string, string>;
 }
 
 interface DenoJson {
@@ -26,6 +32,7 @@ interface DenoJson {
   version?: string;
   imports?: Record<string, string>;
   workspace?: string[];
+  exports?: string;
 }
 
 const readJson = <T>(...path: string[]): T => JSON.parse(readFileSync(join(ROOT, ...path), 'utf8')) as T;
@@ -96,5 +103,31 @@ for (const dir of packages) {
 
   test(`${dir}: the Deno workspace includes it`, () => {
     assert.ok(readJson<DenoJson>('deno.json').workspace?.includes(`./packages/${dir}`));
+  });
+
+  test(`${dir}: npm is served the build and JSR the source`, () => {
+    // The two registries are fed different things on purpose. JSR transpiles TypeScript itself, so
+    // it gets `src/`. npm does not, and Node refuses to strip types under `node_modules` — a package
+    // whose `exports` pointed at a `.ts` file installed fine and then threw on the first import.
+    assert.equal(deno.exports, './src/index.ts', 'JSR should publish the TypeScript source');
+
+    assert.deepEqual(pkg.exports, {
+      '.': {
+        import: { types: './dist/index.d.ts', default: './dist/index.js' },
+        require: { types: './dist/index.d.cts', default: './dist/index.cjs' },
+      },
+    });
+    assert.equal(pkg.main, './dist/index.cjs');
+    assert.equal(pkg.module, './dist/index.js');
+    assert.equal(pkg.types, './dist/index.d.ts');
+  });
+
+  test(`${dir}: the tarball ships the build and nothing else`, () => {
+    // Without `files`, npm packs the whole directory — the first tarball carried `test/` along.
+    assert.deepEqual(pkg.files, ['dist', 'README.md', 'CHANGELOG.md']);
+    assert.equal(pkg.scripts?.build, 'tsup');
+    // A stale `dist/` is the one packaging failure no static check can see, so the build runs again
+    // on the way out rather than trusting whatever CI left behind.
+    assert.equal(pkg.scripts?.prepublishOnly, 'npm run build');
   });
 }
