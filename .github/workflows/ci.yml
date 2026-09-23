@@ -1,20 +1,27 @@
 name: CI
 
-# Runs on the development forge only, through the `if:` guards below. The reason they were added is
-# gone — the packages used to build against a core that existed on an internal registry, and now
-# resolve it from npmjs.org like anyone else — so lifting them is unblocked. Until that happens, the
-# public mirror carries this file with every job skipped.
+# Runs on BOTH forges. It used to be guarded to the development forge, because the packages built
+# against a core that existed only on an internal registry a public runner cannot reach. They now
+# resolve `@green-tea/core` from npmjs.org, so that reason is gone and the guards are too.
+#
+# `contrib` is in both lists because external pull requests target it (CONTRIBUTING.md). Leaving it
+# out is not a smaller version of running CI — it is none: a pull request against a branch that is
+# not listed triggers nothing at all, so a contributor gets no signal and neither does whoever
+# merges it.
+#
+# GitHub does not run workflows on pull requests from forks until a maintainer approves them, so a
+# contributor's first push may sit with no checks for a while. That is not a rejection.
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, main, contrib]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, contrib]
 
 jobs:
   # Its own job so a missing sign-off reports on its own and costs nothing on push. Checks that the
   # trailer is present, not that it matches the author.
   dco:
-    if: github.event_name == 'pull_request' && github.server_url != 'https://github.com'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +46,6 @@ jobs:
 
   # Node 22 is the lowest `engines.node` any package declares (spec 2.5: build on the floor).
   build:
-    if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +65,6 @@ jobs:
   # A fixed matrix, not `fromJSON`: Gitea Actions support for a dynamic matrix was not verified. Each
   # entry runs only the packages whose engines name that runtime (scripts/run-runtime.mjs).
   runtimes:
-    if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -54,11 +54,19 @@ mirror push refuse.
 removed, so promoting a tag has to stay a deliberate act rather than a side effect of promoting a
 branch.
 
-CI itself still runs on the development forge only, through the `if:` guards in `ci.yml` — but the
-reason is gone: the packages used to build against a core that existed on an internal registry
-alone, and since 2026-09-22 they resolve `@green-tea/core` from npmjs.org like anyone else.
-Removing those guards is unblocked rather than done, and until it happens the mirrored repository
-carries workflows that skip every job.
+**CI runs on both forges, and `contrib` is one of the branches it watches.** It used to be guarded
+to the development forge, because the packages built against a core that existed only on an
+internal registry a public runner cannot reach; they resolve `@green-tea/core` from npmjs.org now,
+so the guards are gone.
+
+Adding `contrib` to the mirror without adding it to `ci.yml` would have been worse than not having
+the branch. A pull request against a branch a workflow does not list triggers **nothing** — not a
+reduced set of checks, none — so a contributor would see no signal and neither would whoever merged
+it. The two changes belong together.
+
+GitHub does not run workflows on pull requests from forks until a maintainer approves them, so a
+contributor's first push may sit with no checks for a while. That is not a rejection, and it is
+worth saying so rather than letting silence read as one.
 
 ## The plugin convention
 
