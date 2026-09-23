@@ -96,6 +96,21 @@ function notes(logPath, tag) {
   const shipped = [...plain.matchAll(/Successfully published (@[^@\s]+\/[^@\s]+)@(\S+)/g)]
     .map(([, name, version]) => ({ name, version }));
 
+  // A log carrying neither marker is not "nothing was published" — it is a log this script cannot
+  // read, and the two are indistinguishable from the text alone. Saying nothing shipped when three
+  // packages did is the worse failure, and it is silent, so refuse instead of guessing.
+  //
+  // This is not hypothetical: the first version of this workflow piped only stdout, while deno logs
+  // to stderr, so every successful release would have produced an empty log and a release body
+  // announcing that nothing happened.
+  if (shipped.length === 0 && !/already published/.test(plain)) {
+    throw new Error(
+      `${logPath} contains neither "Successfully published" nor "already published". ` +
+        'Either the publish did not run, or its output is not being captured — check that the step ' +
+        'redirects stderr (deno logs there) and that the pipeline uses pipefail.',
+    );
+  }
+
   if (shipped.length === 0) {
     return `No package versions were published by \`${tag}\` — every version in the workspace was already on JSR.`;
   }

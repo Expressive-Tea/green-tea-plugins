@@ -64,8 +64,21 @@ jobs:
       # No token: OIDC exchanges the workflow's id-token, which is also what attaches provenance.
       # `tee` because the release body is built from what this actually did rather than from a guess
       # about what it would do.
+      #
+      # Two details in this one line, both of which produce a *silently wrong* release when missed:
+      #
+      #   `shell: bash`  — the default shell here is `bash -e`, without `pipefail`, so a pipeline
+      #                    reports the exit status of its LAST command. That is `tee`, which always
+      #                    succeeds. A failed publish would have been reported as a green step, and
+      #                    a GitHub release created for it. Naming the shell gets `-eo pipefail`.
+      #
+      #   `2>&1`         — deno's logger is env_logger, whose default target is stderr, so every
+      #                    "Successfully published" line goes there. Measured: a publish writes 0
+      #                    lines to stdout and all of them to stderr. Without this the log is empty
+      #                    and the release notes say nothing shipped while three packages did.
       - name: Publish
-        run: deno publish | tee /tmp/publish.log
+        shell: bash
+        run: deno publish 2>&1 | tee /tmp/publish.log
 
       - name: Release notes
         run: node scripts/release.mjs --notes /tmp/publish.log "$GITHUB_REF_NAME" > /tmp/notes.md
