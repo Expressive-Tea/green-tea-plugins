@@ -25,10 +25,29 @@ Run all of them before proposing anything as finished. CI runs each one and each
 ## Two forges
 
 Gitea `Green-Tea/plugins` is the origin. `develop` and `main` are protected; everything lands through
-a pull request. CI still runs on Gitea only, through the `if:` guards in `ci.yml` — but the reason
-is gone: `@green-tea/core@26.9.0-beta.2` shipped to npmjs.org on 2026-09-22, so the packages no
-longer need Verdaccio and a GitHub runner can now resolve them. Removing those guards and adding the
-mirror is Plan B3, and it is unblocked rather than done.
+a pull request.
+
+```
+feature/* → develop → main → [promote.yml] → GitHub main
+```
+
+`promote.yml` runs on Gitea only and mirrors `main`, and nothing else. Feature branches and
+`develop` stay private, which is why this is a workflow rather than Gitea's push-mirror — that
+would expose every branch. The push is never forced: a refusal means GitHub `main` holds commits
+Gitea `main` does not, and that is a question to answer, not an obstacle to remove.
+
+There is **no `contrib` branch** here, unlike core. This repository has no documented flow for
+outside contributions yet, so there is nothing for a second mirrored branch to serve. Add one when
+that flow exists rather than shipping a branch nobody targets.
+
+**Tags are not mirrored.** These packages publish to JSR, where a version can never be replaced or
+removed, so promoting a tag has to stay a deliberate act rather than a side effect of promoting a
+branch.
+
+CI itself still runs on Gitea only, through the `if:` guards in `ci.yml` — but the reason is gone:
+`@green-tea/core@26.9.0-beta.2` shipped to npmjs.org on 2026-09-22, so the packages no longer need
+Verdaccio and a GitHub runner can resolve them. Removing those guards is unblocked rather than done,
+and until it happens the mirrored repository carries workflows that skip every job.
 
 ## The plugin convention
 
