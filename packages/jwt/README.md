@@ -12,6 +12,16 @@ it with `@needs('jwt')` and signs or verifies by key name.
 | Bun | ✅ | |
 | workerd (edge) | ❌ | Reads the signing key from a file path, and workerd has no filesystem. |
 
+## Install
+
+```bash
+npx jsr add @green-tea/jwt
+```
+
+Or `deno add jsr:@green-tea/jwt`, or `bunx jsr add @green-tea/jwt`. Under npm, yarn and pnpm
+`jsr add` installs through `npm.jsr.io`, so the import below stays `@green-tea/jwt`.
+There is no npmjs.org package — `npm i @green-tea/jwt` will not find one.
+
 ## Usage
 
 ```ts

@@ -12,6 +12,16 @@ own, with the transformer this package ships.
 | Bun | ✅ | |
 | workerd (edge) | ❌ | Counters live in one isolate, and an edge deployment has many, so a scrape reports whichever isolate answered it. Supported once the counters can be shared. |
 
+## Install
+
+```bash
+npx jsr add @green-tea/metrics
+```
+
+Or `deno add jsr:@green-tea/metrics`, or `bunx jsr add @green-tea/metrics`. Under npm, yarn and pnpm
+`jsr add` installs through `npm.jsr.io`, so the import below stays `@green-tea/metrics`.
+There is no npmjs.org package — `npm i @green-tea/metrics` will not find one.
+
 ## Usage
 
 ```ts
