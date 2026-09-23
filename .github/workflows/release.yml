@@ -37,6 +37,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Both runtimes, because the gates below run both suites. `ci.yml` installs these one per
+      # matrix entry; here every suite runs in the same job, so both have to be present. Leaving
+      # bun out does not skip its suite — `scripts/run-runtime.mjs` spawns `bun`, gets ENOENT, and
+      # `process.exit(status ?? 1)` turns that into a failure that aborts the release.
+      - uses: oven-sh/setup-bun@v2
       - run: npm ci
 
       # The same gates CI runs. They ran on `main` already, and they run again here because this is
