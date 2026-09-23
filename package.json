@@ -10,7 +10,6 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build --workspaces",
     "lint": "eslint --no-error-on-unmatched-pattern packages test",
     "format": "prettier --write \"packages/*/{src,test}/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"packages/*/{src,test}/**/*.ts\" \"test/**/*.ts\"",
@@ -29,7 +28,6 @@
     "cognitive-complexity-ts": "^0.8.2",
     "eslint": "^9.39.5",
     "prettier": "^3.9.6",
-    "tsup": "^8.5.1",
     "tsx": "^4.23.5",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.70.0"

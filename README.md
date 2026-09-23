@@ -1,8 +1,31 @@
-# green-tea plugins
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">green&nbsp;tea plugins.</h1>
+
+<p align="center"><b>Each one is a node in the graph, not a link in a chain.</b></p>
+
+<p align="center">
+  A plugin declares what it provides; your route declares what it needs.<br />
+  Nothing runs for a route that never asked for it.
+</p>
+
+---
 
 Official plugins for [green-tea](https://github.com/Expressive-Tea/green-tea). Each one is its own
-package under `packages/`, published to npm and JSR, and each README says which runtimes it supports
-and why not the others.
+package under `packages/`, published to JSR, and each README says which runtimes it supports and why
+not the others.
+
+```bash
+npx jsr add @green-tea/jwt      # npm, and the same command for yarn and pnpm
+deno add jsr:@green-tea/jwt
+bunx jsr add @green-tea/jwt
+```
+
+That works under every package manager: `jsr add` writes one line to `.npmrc` and installs through
+`npm.jsr.io`, so the import stays `@green-tea/jwt` and nothing in your code mentions JSR. A plain
+`npm i @green-tea/jwt` will **not** work — these packages are not on npmjs.org.
 
 | Package | What it does |
 |---|---|
@@ -10,5 +33,13 @@ and why not the others.
 | [`@green-tea/rate-limit`](packages/rate-limit) | A per-request limiter with a branded `429` and a swept in-memory store |
 | [`@green-tea/metrics`](packages/metrics) | Counts the lifecycle stream and renders the Prometheus text format |
 
-Plugins import core as types only, so installing one never pulls a second copy of core — and never
-warns about a version range, which under CalVer no range can express.
+Plugins import core as types only, and a type import leaves nothing behind when it compiles — the
+JavaScript JSR publishes never mentions core. So the core that runs is always your application's,
+whatever version a plugin was written against, and nothing warns about a version range, which under
+CalVer no range can express.
+
+That is about *loading*, not about disk. A plugin names an exact core in its `deno.json`, and when
+your version differs by more than the patch, npm places a second copy under the plugin rather than
+deduplicating. Measured, on purpose: it is inert, because nothing ever imports it. What it can do
+is make `tsc` resolve a plugin's `Plugin` type against that copy instead of yours, which fails
+loudly at compile time rather than quietly at runtime.

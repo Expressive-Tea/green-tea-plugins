@@ -1,4 +1,17 @@
-# @green-tea/metrics
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">@green-tea/metrics</h1>
+
+<p align="center"><b>Count the lifecycle. Render Prometheus.</b></p>
+
+<p align="center">
+  Reads the event stream green-tea already emits, so nothing in your<br />
+  handlers has to know it is being measured.
+</p>
+
+---
 
 Subscribes to green-tea's lifecycle stream and counts what happened. You expose it on a route you
 own, with the transformer this package ships.
@@ -11,6 +24,16 @@ own, with the transformer this package ships.
 | Deno | ✅ | |
 | Bun | ✅ | |
 | workerd (edge) | ❌ | Counters live in one isolate, and an edge deployment has many, so a scrape reports whichever isolate answered it. Supported once the counters can be shared. |
+
+## Install
+
+```bash
+npx jsr add @green-tea/metrics
+```
+
+Or `deno add jsr:@green-tea/metrics`, or `bunx jsr add @green-tea/metrics`. Under npm, yarn and pnpm
+`jsr add` installs through `npm.jsr.io`, so the import below stays `@green-tea/metrics`.
+There is no npmjs.org package — `npm i @green-tea/metrics` will not find one.
 
 ## Usage
 

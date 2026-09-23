@@ -14,6 +14,7 @@ const README_RUNTIMES: Record<string, string> = { Node: 'node', Deno: 'deno', Bu
 interface PackageJson {
   name: string;
   version: string;
+  private?: boolean;
   engines?: Record<string, string>;
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
@@ -105,29 +106,30 @@ for (const dir of packages) {
     assert.ok(readJson<DenoJson>('deno.json').workspace?.includes(`./packages/${dir}`));
   });
 
-  test(`${dir}: npm is served the build and JSR the source`, () => {
-    // The two registries are fed different things on purpose. JSR transpiles TypeScript itself, so
-    // it gets `src/`. npm does not, and Node refuses to strip types under `node_modules` — a package
-    // whose `exports` pointed at a `.ts` file installed fine and then threw on the first import.
+  test(`${dir}: JSR is served the source`, () => {
+    // JSR transpiles TypeScript itself and hands consumers a typed ESM package, so it gets `src/`
+    // and the packages carry no build of their own.
     assert.equal(deno.exports, './src/index.ts', 'JSR should publish the TypeScript source');
-
-    assert.deepEqual(pkg.exports, {
-      '.': {
-        import: { types: './dist/index.d.ts', default: './dist/index.js' },
-        require: { types: './dist/index.d.cts', default: './dist/index.cjs' },
-      },
-    });
-    assert.equal(pkg.main, './dist/index.cjs');
-    assert.equal(pkg.module, './dist/index.js');
-    assert.equal(pkg.types, './dist/index.d.ts');
   });
 
-  test(`${dir}: the tarball ships the build and nothing else`, () => {
-    // Without `files`, npm packs the whole directory — the first tarball carried `test/` along.
-    assert.deepEqual(pkg.files, ['dist', 'README.md', 'CHANGELOG.md']);
-    assert.equal(pkg.scripts?.build, 'tsup');
-    // A stale `dist/` is the one packaging failure no static check can see, so the build runs again
-    // on the way out rather than trusting whatever CI left behind.
-    assert.equal(pkg.scripts?.prepublishOnly, 'npm run build');
+  test(`${dir}: nothing here is publishable to npm`, () => {
+    // Plugins publish to JSR alone. `npx jsr add` installs them under npm, yarn, pnpm and bun
+    // through `npm.jsr.io`, which leaves the import specifier intact, so the second registry bought
+    // a per-package tsup build and a dual `exports` map without buying a reader anything.
+    //
+    // JSR is also the only one of the two that can say *where a plugin runs*, per package. That is
+    // not cosmetic for a framework whose claim is one app on four runtimes: `jwt` needs
+    // `node:fs/promises` and `metrics` imports nothing at all, and npm has nowhere to record the
+    // difference.
+    //
+    // `private` is the guard, not a leftover: it is what makes an accidental `npm publish` fail
+    // instead of shipping a package whose entry points describe a `dist/` nobody builds.
+    assert.equal(pkg.private, true, 'a plugin must not be publishable to npm');
+
+    for (const field of ['main', 'module', 'types', 'exports', 'files'] as const) {
+      assert.equal(pkg[field], undefined, `${field} describes an npm tarball that is never built`);
+    }
+
+    assert.equal(pkg.scripts?.build, undefined, 'there is no build to run');
   });
 }

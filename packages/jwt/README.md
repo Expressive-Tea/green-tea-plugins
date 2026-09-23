@@ -1,4 +1,17 @@
-# @green-tea/jwt
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">@green-tea/jwt</h1>
+
+<p align="center"><b>Sign and verify, as one node in the graph.</b></p>
+
+<p align="center">
+  Keys load once, while providers boot — a bad key fails the deploy,<br />
+  not the first sign-in of the day.
+</p>
+
+---
 
 Loads JWT signing keys at boot and publishes them into the graph as one registry. A handler asks for
 it with `@needs('jwt')` and signs or verifies by key name.
@@ -11,6 +24,16 @@ it with `@needs('jwt')` and signs or verifies by key name.
 | Deno | ✅ | |
 | Bun | ✅ | |
 | workerd (edge) | ❌ | Reads the signing key from a file path, and workerd has no filesystem. |
+
+## Install
+
+```bash
+npx jsr add @green-tea/jwt
+```
+
+Or `deno add jsr:@green-tea/jwt`, or `bunx jsr add @green-tea/jwt`. Under npm, yarn and pnpm
+`jsr add` installs through `npm.jsr.io`, so the import below stays `@green-tea/jwt`.
+There is no npmjs.org package — `npm i @green-tea/jwt` will not find one.
 
 ## Usage
 

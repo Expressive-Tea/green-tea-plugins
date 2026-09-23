@@ -1,4 +1,17 @@
-# @green-tea/rate-limit
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">@green-tea/rate-limit</h1>
+
+<p align="center"><b>A limit your handler's signature admits to.</b></p>
+
+<p align="center">
+  The route asks for the limiter by name, so it runs where it is wanted<br />
+  and nowhere else — and you can see which routes those are.
+</p>
+
+---
 
 Publishes a per-request rate limiter into the graph. A handler opts in by asking for it and naming a
 rule, so the limit is visible in the handler's signature rather than hidden in a middleware chain —
@@ -12,6 +25,16 @@ and green-tea runs the step only for the routes that depend on it.
 | Deno | ✅ | |
 | Bun | ✅ | |
 | workerd (edge) | ❌ | The default store counts per isolate, and an edge deployment has many, so a shared limit is not one. Supported once a store that shares state ships. |
+
+## Install
+
+```bash
+npx jsr add @green-tea/rate-limit
+```
+
+Or `deno add jsr:@green-tea/rate-limit`, or `bunx jsr add @green-tea/rate-limit`. Under npm, yarn and pnpm
+`jsr add` installs through `npm.jsr.io`, so the import below stays `@green-tea/rate-limit`.
+There is no npmjs.org package — `npm i @green-tea/rate-limit` will not find one.
 
 ## Usage
 
