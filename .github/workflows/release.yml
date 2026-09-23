@@ -1,0 +1,93 @@
+name: Release → JSR
+
+# Publishes the workspace to JSR. Runs on GITHUB ONLY, on a `release-*` tag.
+#
+# **The tag is a date, not a version.** `release-26.9.23` says when, and the release body says what
+# moved. A version-shaped tag would be a lie here: three packages carry three independent versions,
+# so `plugins-v26.9.0` would match none of them and invite exactly the confusion of reading it as
+# `@green-tea/jwt@26.9.0`.
+#
+# Tag-driven rather than push-driven, unlike the example JSR's own setup page offers. That example
+# publishes on every push to `main`, which for this repository means every promotion publishes — and
+# a JSR version can never be replaced or removed, so a distracted merge would burn a version number
+# forever. A tag is a decision; a merge is not.
+#
+# Publishing all three at once is safe, and this is the fact the whole design rests on: `deno publish`
+# queries the registry per package and drops the ones already there, logging
+# `Warning: Skipping, already published` for each. If every version is already published it prints
+# `Success: All packages are already published` and exits 0. So a tag cut after changing one package
+# publishes that one and leaves the others alone, with no per-package logic here.
+# (denoland/deno, cli/tools/publish/mod.rs — `filter_out_published_packages`.)
+on:
+  push:
+    tags: ['release-*']
+
+jobs:
+  publish:
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC — this is what publishes, and what earns provenance
+      contents: write # create the GitHub release for this tag
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: npm ci
+
+      # The same gates CI runs. They ran on `main` already, and they run again here because this is
+      # the last moment they can still change the outcome: after the publish there is no amending a
+      # version, only publishing another one.
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run complexity:check
+      - run: npm test
+      - run: npm run test:deno
+      - run: npm run test:bun
+      - run: npm run test:edge
+
+      # Before the publish, on purpose. This reports which versions the tag would ship and refuses
+      # when one has no CHANGELOG entry — a package whose own changelog says it was never released
+      # is not something to discover afterwards, because afterwards is permanent.
+      - name: Every version about to ship has a changelog entry
+        run: node scripts/release.mjs --check
+
+      # JSR checks things no other gate does — slow types, module analysis — and learning about them
+      # mid-publish leaves a tag half-shipped.
+      - run: deno publish --dry-run
+
+      # No token: OIDC exchanges the workflow's id-token, which is also what attaches provenance.
+      # `tee` because the release body is built from what this actually did rather than from a guess
+      # about what it would do.
+      #
+      # Two details in this one line, both of which produce a *silently wrong* release when missed:
+      #
+      #   `shell: bash`  — the default shell here is `bash -e`, without `pipefail`, so a pipeline
+      #                    reports the exit status of its LAST command. That is `tee`, which always
+      #                    succeeds. A failed publish would have been reported as a green step, and
+      #                    a GitHub release created for it. Naming the shell gets `-eo pipefail`.
+      #
+      #   `2>&1`         — deno's logger is env_logger, whose default target is stderr, so every
+      #                    "Successfully published" line goes there. Measured: a publish writes 0
+      #                    lines to stdout and all of them to stderr. Without this the log is empty
+      #                    and the release notes say nothing shipped while three packages did.
+      - name: Publish
+        shell: bash
+        run: deno publish 2>&1 | tee /tmp/publish.log
+
+      - name: Release notes
+        run: node scripts/release.mjs --notes /tmp/publish.log "$GITHUB_REF_NAME" > /tmp/notes.md
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file /tmp/notes.md \
+            --prerelease
