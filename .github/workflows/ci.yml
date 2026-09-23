@@ -1,19 +1,27 @@
 name: CI
 
-# Gitea only, for now. Every package builds against @green-tea/core@26.9.0-beta.2, which exists on
-# Verdaccio alone, and a GitHub runner cannot reach Verdaccio. Plan B3 moves the packages to a core on
-# npm, removes these guards and adds the GitHub mirror; until then GitHub has no copy to run against.
+# Runs on BOTH forges. It used to be guarded to the development forge, because the packages built
+# against a core that existed only on an internal registry a public runner cannot reach. They now
+# resolve `@green-tea/core` from npmjs.org, so that reason is gone and the guards are too.
+#
+# `contrib` is in both lists because external pull requests target it (CONTRIBUTING.md). Leaving it
+# out is not a smaller version of running CI — it is none: a pull request against a branch that is
+# not listed triggers nothing at all, so a contributor gets no signal and neither does whoever
+# merges it.
+#
+# GitHub does not run workflows on pull requests from forks until a maintainer approves them, so a
+# contributor's first push may sit with no checks for a while. That is not a rejection.
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, main, contrib]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, main, contrib]
 
 jobs:
   # Its own job so a missing sign-off reports on its own and costs nothing on push. Checks that the
   # trailer is present, not that it matches the author.
   dco:
-    if: github.event_name == 'pull_request' && github.server_url != 'https://github.com'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,17 +46,12 @@ jobs:
 
   # Node 22 is the lowest `engines.node` any package declares (spec 2.5: build on the floor).
   build:
-    if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Authenticate to Verdaccio
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
-        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
@@ -62,7 +65,6 @@ jobs:
   # A fixed matrix, not `fromJSON`: Gitea Actions support for a dynamic matrix was not verified. Each
   # entry runs only the packages whose engines name that runtime (scripts/run-runtime.mjs).
   runtimes:
-    if: github.server_url != 'https://github.com'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -73,10 +75,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Authenticate to Verdaccio
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
-        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
       - run: npm ci
       - if: matrix.runtime == 'deno'
         uses: denoland/setup-deno@v2
