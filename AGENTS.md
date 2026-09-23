@@ -25,8 +25,10 @@ Run all of them before proposing anything as finished. CI runs each one and each
 ## Two forges
 
 Gitea `Green-Tea/plugins` is the origin. `develop` and `main` are protected; everything lands through
-a pull request. Until core is consumed from npm (Plan B3), CI runs on Gitea only, because
-`@green-tea/core` comes from Verdaccio, which a GitHub runner cannot reach.
+a pull request. CI still runs on Gitea only, through the `if:` guards in `ci.yml` — but the reason
+is gone: `@green-tea/core@26.9.0-beta.2` shipped to npmjs.org on 2026-09-22, so the packages no
+longer need Verdaccio and a GitHub runner can now resolve them. Removing those guards and adding the
+mirror is Plan B3, and it is unblocked rather than done.
 
 ## The plugin convention
 
