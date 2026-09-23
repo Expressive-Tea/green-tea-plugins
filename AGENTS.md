@@ -69,9 +69,9 @@ mirror is Plan B3, and it is unblocked rather than done.
     it lived. It is declared in the JSR package settings, not in `deno.json` — the config schema
     accepts `name`, `version`, `license`, `exports` and `publish`, and nothing else.
 
-    What this gives up: no discovery on npmjs.org, where the marketplace is the channel anyway, and
-    a site behind a registry proxy that mirrors npmjs.org and refuses a second one cannot reach the
-    plugins. Core still can — it publishes to both.
+    What this gives up, stated plainly rather than argued away: nobody searching npmjs.org will find
+    these, and a site behind a registry proxy that mirrors npmjs.org and refuses to add a second one
+    cannot install them at all. Core still can — it publishes to both.
 
 ## Conventions
 

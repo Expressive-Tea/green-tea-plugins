@@ -1,4 +1,17 @@
-# @green-tea/rate-limit
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">@green-tea/rate-limit</h1>
+
+<p align="center"><b>A limit your handler's signature admits to.</b></p>
+
+<p align="center">
+  The route asks for the limiter by name, so it runs where it is wanted<br />
+  and nowhere else — and you can see which routes those are.
+</p>
+
+---
 
 Publishes a per-request rate limiter into the graph. A handler opts in by asking for it and naming a
 rule, so the limit is visible in the handler's signature rather than hidden in a middleware chain —

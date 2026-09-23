@@ -1,4 +1,17 @@
-# @green-tea/metrics
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Expressive-Tea/green-tea/main/assets/logo.png" width="96" alt="Green Tea" />
+</p>
+
+<h1 align="center">@green-tea/metrics</h1>
+
+<p align="center"><b>Count the lifecycle. Render Prometheus.</b></p>
+
+<p align="center">
+  Reads the event stream green-tea already emits, so nothing in your<br />
+  handlers has to know it is being measured.
+</p>
+
+---
 
 Subscribes to green-tea's lifecycle stream and counts what happened. You expose it on a route you
 own, with the transformer this package ships.
