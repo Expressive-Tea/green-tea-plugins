@@ -1,0 +1,44 @@
+name: Promote → GitHub
+
+# Promotion. Runs on GITEA ONLY. Mirrors one branch to the public GitHub repo and nothing else:
+#
+#     main → GitHub main
+#
+# Development happens on `develop` and feature branches, and those stay Gitea-private — which is
+# why this is a workflow rather than Gitea's push-mirror, since that would expose every branch.
+#
+# Only `main`, and no `contrib` counterpart yet: unlike core, this repository has no documented
+# flow for outside contributions, so there is nothing for a second mirrored branch to serve. Add
+# one here when that flow exists, rather than shipping a branch nobody targets.
+#
+# The push is NOT forced. A refusal means GitHub `main` holds commits that Gitea `main` does not,
+# which is a question to answer rather than an obstacle to remove.
+#
+# Tags are deliberately NOT mirrored, and `--tags` is left off the push for the same reason. These
+# packages publish to JSR, where a version can never be replaced or removed — so promoting a tag
+# has to stay a decision someone takes deliberately, never a side effect of promoting a branch.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  push-github:
+    if: ${{ github.server_url != 'https://github.com' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for a clean push
+      - name: Push to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GH_PROMOTE_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_PROMOTE_TOKEN is not set on this repository. Add it in Settings → Actions → Secrets; core carries the same secret."
+            exit 1
+          fi
+          git remote add github "https://x-access-token:${GH_TOKEN}@github.com/Expressive-Tea/green-tea-plugins.git"
+          if ! git push github "HEAD:refs/heads/main"; then
+            echo "::error::GitHub main has commits that Gitea main does not. Find out what they are and carry them; never force this push."
+            exit 1
+          fi
