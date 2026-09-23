@@ -18,7 +18,6 @@ npm run typecheck
 npm test                   # Node: every package's contract tests + the workspace checks
 npm run test:deno          # packages whose engines declare deno
 npm run test:bun           # packages whose engines declare bun
-npm run build              # tsup, every package: dist/ as CJS + ESM + declarations, for npm only
 ```
 
 Run all of them before proposing anything as finished. CI runs each one and each gates a merge.
@@ -49,12 +48,28 @@ a pull request. Until core is consumed from npm (Plan B3), CI runs on Gitea only
    beside every one that is not supported. Nobody should have to open an issue to learn where a
    plugin runs.
 10. A breaking change goes under `### Breaking`, first in the package's CHANGELOG.
-11. **The two registries are served different things.** `deno.json` exports `./src/index.ts`, because
-    JSR transpiles TypeScript itself and hands Node a typed ESM package. `package.json` exports
-    `./dist/`, built by tsup as CJS *and* ESM, because npm transpiles nothing and Node refuses to
-    strip types under `node_modules` — `--experimental-strip-types` does not lift that, so a package
-    exporting `.ts` installs cleanly and then throws on the first import, everywhere but Bun.
-    `test/workspace.test.ts` pins both halves.
+11. **Plugins publish to JSR alone.** `deno.json` exports `./src/index.ts` and there is no build:
+    JSR transpiles the TypeScript itself and hands consumers a typed ESM package with generated
+    declarations. Every `package.json` here stays `private`, so an accidental `npm publish` fails
+    rather than shipping entry points that describe a `dist/` nobody produces. `test/workspace.test.ts`
+    pins that.
+
+    The second registry was dropped because it was not buying a reader anything. `npx jsr add
+    @green-tea/<name>` installs under npm, yarn, pnpm and bun via `npm.jsr.io` — one line in
+    `.npmrc`, and the import specifier stays `@green-tea/<name>`; the `@jsr/` name appears only in
+    the lockfile. What it cost was a tsup config per package, a dual `exports` map, and a `dist/`
+    that could go stale between a merge and a release.
+
+    JSR is also the only one of the two that can say **where a plugin runs**. Its `runtimeCompat` is
+    per package, which matters for a framework whose claim is one app on four runtimes: `jwt` needs
+    `node:fs/promises` and cannot serve workerd, while `metrics` imports nothing and runs everywhere.
+    npm has nowhere to record that difference, so rule 9's `engines`/README pair was the only place
+    it lived. It is declared in the JSR package settings, not in `deno.json` — the config schema
+    accepts `name`, `version`, `license`, `exports` and `publish`, and nothing else.
+
+    What this gives up: no discovery on npmjs.org, where the marketplace is the channel anyway, and
+    a site behind a registry proxy that mirrors npmjs.org and refuses a second one cannot reach the
+    plugins. Core still can — it publishes to both.
 
 ## Conventions
 

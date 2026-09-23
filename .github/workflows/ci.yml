@@ -55,10 +55,9 @@ jobs:
       - run: npm run complexity:check
       - run: npm run typecheck
       - run: npm test
-      # The npm tarball is a build artifact, so a broken build is a broken release. `typecheck` will
-      # not catch it: that runs with `noEmit`, and tsup emits through esbuild, which resolves and
-      # bundles on its own terms.
-      - run: npm run build
+      # No build step: JSR publishes `src/` and transpiles it. `deno publish --dry-run`, in the
+      # `runtimes` job below, is what stands in for it — that is the publish path these packages
+      # actually take.
 
   # A fixed matrix, not `fromJSON`: Gitea Actions support for a dynamic matrix was not verified. Each
   # entry runs only the packages whose engines name that runtime (scripts/run-runtime.mjs).
