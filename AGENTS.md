@@ -24,22 +24,31 @@ Run all of them before proposing anything as finished. CI runs each one and each
 
 ## Two forges
 
-Development lives on a private Gitea instance. GitHub is a downstream mirror that receives `main`
-and nothing else. On the development forge `develop` and `main` are protected; everything lands
-through a pull request.
+Development lives on a private Gitea instance. GitHub is a downstream mirror that receives `main`,
+and `develop` under the name `contrib`. On the development forge `develop` and `main` are
+protected; everything lands through a pull request.
 
 ```
 feature/* → develop → main → [promote.yml] → GitHub main
+                │              │
+                └─[promote.yml]┴──→ GitHub contrib ← external pull requests
 ```
 
-`promote.yml` runs on the development forge only. Feature branches and `develop` stay private,
-which is why this is a workflow rather than a push-mirror — that would expose every branch. The
-push is never forced: a refusal means GitHub `main` holds commits the source `main` does not, and
-that is a question to answer, not an obstacle to remove.
+`promote.yml` runs on the development forge only. Feature branches stay private, which is why this
+is a workflow rather than a push-mirror — that would expose every branch. Neither push is forced.
 
-There is **no `contrib` branch** here, unlike core. This repository has no documented flow for
-outside contributions yet, so there is nothing for a second mirrored branch to serve. Add one when
-that flow exists rather than shipping a branch nobody targets.
+`contrib` exists because `CONTRIBUTING.md` sends people there: a pull request against `main` would
+put the two forges out of step, so contributors need a branch that tracks current development. For
+`contrib` the unforced push is the guard rather than a limitation — it is refused exactly when
+`contrib` holds external merges nobody has carried into `develop` yet. Carry them and the next
+develop push fast-forwards. Never force it.
+
+**External contributions** arrive on `contrib`. Merge the pull request there, fetch `contrib` into
+a branch on the development forge, then open a pull request from it into `develop` and merge that.
+The next develop push mirrors back and fast-forwards, because `develop` now contains everything
+`contrib` had. Merge rather than rebase: rewriting a contributor's SHAs gains nothing and leaves
+`contrib` holding commits `develop` does not have, which is exactly the state that makes the
+mirror push refuse.
 
 **Tags are not mirrored.** These packages publish to JSR, where a version can never be replaced or
 removed, so promoting a tag has to stay a deliberate act rather than a side effect of promoting a

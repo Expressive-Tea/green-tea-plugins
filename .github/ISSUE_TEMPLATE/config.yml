@@ -1,0 +1,14 @@
+# Design questions and "should this live here?" threads do not fit a form, and they are
+# worth having. Keep the blank option available.
+blank_issues_enabled: true
+
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Expressive-Tea/green-tea-plugins/security/advisories/new
+    about: Report it privately instead. Never in a public issue — see SECURITY.md.
+  - name: A bug in green-tea itself
+    url: https://github.com/Expressive-Tea/green-tea/issues/new
+    about: The framework lives in its own repository. Plugins are types-only against it.
+  - name: Documentation
+    url: https://green-tea.expressive-tea.io/docs/
+    about: How to wire a route, a module, a plugin or a runtime adapter.

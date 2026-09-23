@@ -1,25 +1,27 @@
 name: Promote → GitHub
 
-# Promotion. Runs on GITEA ONLY. Mirrors one branch to the public GitHub repo and nothing else:
+# Promotion. Runs on GITEA ONLY. Mirrors two branches to the public GitHub repo and nothing else:
 #
-#     main → GitHub main
+#     main    → GitHub main      what has been promoted
+#     develop → GitHub contrib   what outside contributors fork from and target
 #
-# Development happens on `develop` and feature branches, and those stay Gitea-private — which is
-# why this is a workflow rather than Gitea's push-mirror, since that would expose every branch.
+# Feature branches stay private, which is why this is a workflow rather than a push-mirror — that
+# would expose every branch.
 #
-# Only `main`, and no `contrib` counterpart yet: unlike core, this repository has no documented
-# flow for outside contributions, so there is nothing for a second mirrored branch to serve. Add
-# one here when that flow exists, rather than shipping a branch nobody targets.
+# `contrib` exists because CONTRIBUTING.md sends people there. A pull request against `main` would
+# put the two forges out of step, so contributors need a branch that tracks current development,
+# and this is it. Same arrangement as core.
 #
-# The push is NOT forced. A refusal means GitHub `main` holds commits that Gitea `main` does not,
-# which is a question to answer rather than an obstacle to remove.
+# Neither push is forced. For `contrib` that is the guard rather than a limitation: the push is
+# refused exactly when `contrib` holds external merges nobody has carried into `develop` yet. Carry
+# them, and the next develop push fast-forwards.
 #
 # Tags are deliberately NOT mirrored, and `--tags` is left off the push for the same reason. These
 # packages publish to JSR, where a version can never be replaced or removed — so promoting a tag
 # has to stay a decision someone takes deliberately, never a side effect of promoting a branch.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
   push-github:
@@ -33,12 +35,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PROMOTE_TOKEN }}
         run: |
+          case "$GITHUB_REF_NAME" in
+            main)    target=main ;;
+            develop) target=contrib ;;
+            *) echo "::error::promote runs for main and develop only, got '$GITHUB_REF_NAME'"; exit 1 ;;
+          esac
           if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_PROMOTE_TOKEN is not set on this repository. Add it in Settings → Actions → Secrets; core carries the same secret."
+            echo "::error::GH_PROMOTE_TOKEN is not set on this repository. Add it in Settings → Actions → Secrets."
             exit 1
           fi
           git remote add github "https://x-access-token:${GH_TOKEN}@github.com/Expressive-Tea/green-tea-plugins.git"
-          if ! git push github "HEAD:refs/heads/main"; then
-            echo "::error::GitHub main has commits that Gitea main does not. Find out what they are and carry them; never force this push."
+          if ! git push github "HEAD:refs/heads/${target}"; then
+            echo "::error::GitHub ${target} has commits that ${GITHUB_REF_NAME} does not. For contrib that means external merges not yet carried into develop — carry them (CONTRIBUTING.md); never force this push."
             exit 1
           fi
