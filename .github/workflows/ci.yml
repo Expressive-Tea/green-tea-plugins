@@ -1,8 +1,9 @@
 name: CI
 
-# Gitea only, for now. Every package builds against @green-tea/core@26.9.0-beta.2, which exists on
-# Verdaccio alone, and a GitHub runner cannot reach Verdaccio. Plan B3 moves the packages to a core on
-# npm, removes these guards and adds the GitHub mirror; until then GitHub has no copy to run against.
+# Runs on the development forge only, through the `if:` guards below. The reason they were added is
+# gone — the packages used to build against a core that existed on an internal registry, and now
+# resolve it from npmjs.org like anyone else — so lifting them is unblocked. Until that happens, the
+# public mirror carries this file with every job skipped.
 on:
   push:
     branches: [develop, main]
@@ -45,10 +46,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Authenticate to Verdaccio
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
-        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
@@ -73,10 +70,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Authenticate to Verdaccio
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH }}
-        run: npm config set //npm.svc.zoit.services/:_authToken "$NODE_AUTH_TOKEN"
       - run: npm ci
       - if: matrix.runtime == 'deno'
         uses: denoland/setup-deno@v2
