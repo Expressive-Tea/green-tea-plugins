@@ -88,7 +88,8 @@ test('the transformer serves the text format with the content type Prometheus ex
   const rendered = prometheus('green_tea_requests_total{route="/x",method="GET",status="200"} 1\n');
 
   assert.equal(rendered.status, 200);
-  assert.match(rendered.headers!['content-type'], /text\/plain/);
+  // Core RC.1 widens response header values to `string | string[]` (core #113), so a reader narrows.
+  assert.match(String(rendered.headers!['content-type']), /text\/plain/);
   assert.match(rendered.body, /green_tea_requests_total/);
 });
 
