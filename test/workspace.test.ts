@@ -76,8 +76,11 @@ for (const dir of packages) {
     assert.equal(pkg.peerDependencies?.['@green-tea/core'], undefined, 'core in peerDependencies');
   });
 
-  test(`${dir}: JSR maps the core version npm installs`, () => {
-    assert.equal(deno.imports?.['@green-tea/core'], `npm:@green-tea/core@${pkg.devDependencies?.['@green-tea/core']}`);
+  // A range, not a pin (core #73): JSR consumers resolve this import, and an exact version gave an app
+  // on a newer core the plugin's older core types. The floor is the version the tests run against;
+  // `^` stops at the next year, the only release that may break (core's versioning policy).
+  test(`${dir}: JSR maps a core range whose floor is the version npm installs`, () => {
+    assert.equal(deno.imports?.['@green-tea/core'], `npm:@green-tea/core@^${pkg.devDependencies?.['@green-tea/core']}`);
   });
 
   test(`${dir}: engines declares runtimes, and only known ones`, () => {
