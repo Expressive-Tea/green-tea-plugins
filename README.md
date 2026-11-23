@@ -35,11 +35,12 @@ That works under every package manager: `jsr add` writes one line to `.npmrc` an
 
 Plugins import core as types only, and a type import leaves nothing behind when it compiles — the
 JavaScript JSR publishes never mentions core. So the core that runs is always your application's,
-whatever version a plugin was written against, and nothing warns about a version range, which under
-CalVer no range can express.
+whatever version a plugin was written against.
 
-That is about *loading*, not about disk. A plugin names an exact core in its `deno.json`, and when
-your version differs by more than the patch, npm places a second copy under the plugin rather than
-deduplicating. Measured, on purpose: it is inert, because nothing ever imports it. What it can do
-is make `tsc` resolve a plugin's `Plugin` type against that copy instead of yours, which fails
-loudly at compile time rather than quietly at runtime.
+The types still come from somewhere, so each plugin's `deno.json` names a core **range**,
+`^26.11.0-rc.2`: the version its tests run against, up to the next year. After core's first stable
+release only the first release of a year may break, so that range is exactly the set of cores a
+plugin stays compatible with, and your application's core satisfies it without a second copy. A
+plugin published before this named an exact core, and an application on a newer one could get a
+second, older copy under the plugin. It was inert at runtime, but `tsc` could resolve the plugin's
+`Plugin` type against it and fail at compile time.
