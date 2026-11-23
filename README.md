@@ -38,7 +38,7 @@ JavaScript JSR publishes never mentions core. So the core that runs is always yo
 whatever version a plugin was written against.
 
 The types still come from somewhere, so each plugin's `deno.json` names a core **range**,
-`^26.11.0-rc.1`: the version its tests run against, up to the next year. After core's first stable
+`^26.11.0-rc.2`: the version its tests run against, up to the next year. After core's first stable
 release only the first release of a year may break, so that range is exactly the set of cores a
 plugin stays compatible with, and your application's core satisfies it without a second copy. A
 plugin published before this named an exact core, and an application on a newer one could get a
